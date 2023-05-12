@@ -2,8 +2,8 @@
 #include "inc/Artila-Matrix310.h"
 
 // Replace with your network credentials
-const char *ssid = "Artila";
-const char *password = "CF25B34315";
+const char *ssid = "Matrix-310";
+const char *password = "00000000";
 
 // Modbus RTU structs
 struct modbusRtuWrite {
@@ -92,8 +92,14 @@ void loop()
     Serial.printf("WiFi.status(): %d\n", WiFi.status());
     Serial.printf("wifiConnectCount: %d\n", wifiConnectCount);
     if(wifiConnectCount > 3){
-      Serial.println("restart ESP");
-      ESP.restart();
+      // Serial.println("restart ESP");
+      // ESP.restart();
+      while (1)
+      {
+        Serial.println("ESP died");
+        delay(10000);
+      }
+      
     }
     WiFi.disconnect(true);
     // WiFi.mode(WIFI_OFF);
@@ -224,12 +230,12 @@ void clientStop() {
 }
 
 void initStructs(modbusRtuRead &rtuRead, modbusTcpRequest &tcpRequest, modbusTcpResponse &tcpResponse) {
-  memset(&rtuRead, NULL, sizeof(modbusRtuRead));
-  memset(&tcpRequest, NULL, sizeof(modbusTcpRequest));
-  memset(&tcpResponse, NULL, sizeof(modbusTcpResponse));
+  memset(&rtuRead, 0, sizeof(modbusRtuRead));
+  memset(&tcpRequest, 0, sizeof(modbusTcpRequest));
+  memset(&tcpResponse, 0, sizeof(modbusTcpResponse));
 }
 void initBuffer(uint8_t *buffer, uint8_t length) {
-  memset(buffer, NULL, length);
+  memset(buffer, 0, length);
 }
 
 uint16_t swap_uint16(uint16_t val)
