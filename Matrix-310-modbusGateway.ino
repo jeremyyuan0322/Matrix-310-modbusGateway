@@ -29,7 +29,7 @@ struct modbusTcpRequest {
   uint8_t length[2];
   modbusRtuWrite rtuPart; // no crc
 };//000100000006020300440003
-// 00 01 00 00 00 06  02 03 00 44 00 03
+// 00 01 00 00 00 06   
 
 struct modbusTcpResponse {
   uint8_t transactionId[2];
@@ -58,12 +58,10 @@ WiFiClient client;
 unsigned int wifiConnectCount = 0;
 void setup() {
   // Initialize serial communication
-  Serial.setDebugOutput(true);
   Serial.begin(115200);
   delay(100);
 
   // Initialize RS485 communication
-  Serial2.setDebugOutput(true);
   Serial2.begin(9600);
   pinMode(COM1_RTS, OUTPUT);
 
@@ -91,16 +89,6 @@ void loop()
   if(WiFi.status() != WL_CONNECTED){
     Serial.printf("WiFi.status(): %d\n", WiFi.status());
     Serial.printf("wifiConnectCount: %d\n", wifiConnectCount);
-    if(wifiConnectCount > 3){
-      // Serial.println("restart ESP");
-      // ESP.restart();
-      while (1)
-      {
-        Serial.println("ESP died");
-        delay(10000);
-      }
-      
-    }
     WiFi.disconnect(true);
     // WiFi.mode(WIFI_OFF);
     Serial.println("WiFi disconnected");
@@ -188,13 +176,21 @@ void loop()
         delay(10);
         clientTimeout = millis();
       }
-      if (millis() - clientTimeout > 10000 || client.connected() != true || 
-          WiFi.status() != WL_CONNECTED)
-      {
-        // Close the connection
-        Serial.printf("client.connected(): %d\n", client.connected());
-        clientStop();
-        Serial.println("Client timeout - disconnected");
+      if(millis() - clientTimeout > 5000){
+        client.stop();
+        Serial.println("client timeout");
+        Serial.println("client disconnected");
+        break;
+      }
+      else if(client.connected() != true){
+        client.stop();
+        Serial.println("client disconnected");
+        break;
+      }
+      else if(WiFi.status() != WL_CONNECTED){
+        client.stop();
+        Serial.println("WiFi disconnected");
+        Serial.println("client disconnected");
         break;
       }
     }
@@ -207,13 +203,18 @@ bool wifiConnect()
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
-  WiFi.setAutoReconnect(false);
+  // WiFi.setAutoReconnect(false);
+  delay(100);
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
   WiFi.begin(ssid, password);
   unsigned long startTime = millis();
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
     if (WiFi.status() == WL_CONNECTED) {
+      //RSSI
+      Serial.printf("WiFi.RSSI(): %d\n", WiFi.RSSI());
       break;
     }
     if (millis() - startTime > 6000) {
@@ -222,11 +223,6 @@ bool wifiConnect()
     }
   }
   return true;
-}
-
-void clientStop() {
-  client.stop();
-  Serial.println("Client disconnected");
 }
 
 void initStructs(modbusRtuRead &rtuRead, modbusTcpRequest &tcpRequest, modbusTcpResponse &tcpResponse) {
@@ -277,7 +273,7 @@ bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead,
   if (rtuRead.data == NULL)
   {
         Serial.println("malloc failed");
-        clientStop();
+        client.stop();
         return false;
   }
   else
@@ -324,7 +320,7 @@ bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead,
         if (millis() - RS485Timeout > 1000)
         {
             Serial.println("read nothing!");
-            clientStop();
+            client.stop();
             return false;
         }
   }
