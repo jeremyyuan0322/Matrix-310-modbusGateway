@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include "inc/Artila-Matrix310.h"
+#include "esp_wifi.h"
 // #include "rom/ets_sys.h"
 // Replace with your network credentials
 const char *ssid = "Matrix-310";
@@ -199,6 +200,18 @@ void loop()
 
 bool wifiConnect()
 {
+  wifi_ps_type_t current_ps_mode;
+  esp_wifi_get_ps(&current_ps_mode);
+  esp_sleep_enable_wifi_wakeup();
+  if(current_ps_mode == WIFI_PS_NONE) {
+    Serial.println("WiFi is not in power save mode");
+  } 
+  else if(current_ps_mode == WIFI_PS_MIN_MODEM) {
+    Serial.println("WiFi is in minimum modem power save mode");
+  } 
+  else if(current_ps_mode == WIFI_PS_MAX_MODEM) {
+    Serial.println("WiFi is in maximum modem power save mode");
+}
   Serial.println();
   Serial.println();
   Serial.print("Connecting to ");
@@ -209,12 +222,46 @@ bool wifiConnect()
   WiFi.setSleep(false);
   WiFi.setSleep(WIFI_PS_NONE);
   wifiScan();
+  esp_wifi_set_max_tx_power(20);
   WiFi.begin(ssid, password);
   unsigned long startTime = millis();
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
     if (WiFi.status() == WL_CONNECTED) {
+      wifi_config_t conf;
+      esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &conf);
+      /*
+      - ESP_OK: succeed
+  *    - ESP_ERR_WIFI_NOT_INIT: WiFi is not initialized by esp_wifi_init
+  *    - ESP_ERR_INVALID_ARG: invalid argument
+  *    - ESP_ERR_WIFI_MODE: WiFi mode is wrong
+  *    - ESP_ERR_WIFI_CONN: WiFi internal error, the station/soft-AP control block is invalid*/
+      if (err == ESP_OK)
+      {
+        // 打印 SSID
+        Serial.printf("SSID: %s\n", conf.sta.ssid);
+      }
+      else
+      {
+        // 處理錯誤
+        if(err == ESP_ERR_WIFI_NOT_INIT){
+          Serial.println("WiFi is not initialized by esp_wifi_init");
+        }
+        else if(err == ESP_ERR_INVALID_ARG){
+          Serial.println("invalid argument");
+        }
+        else if(err == ESP_ERR_WIFI_MODE){
+          Serial.println("WiFi mode is wrong");
+        }
+        else if(err == ESP_ERR_WIFI_CONN){
+          Serial.println("WiFi internal error, the station/soft-AP control block is invalid");
+        }
+        else{
+          Serial.printf("unknown error: %d\n", err);
+        }
+      }
+
       //RSSI
       Serial.printf("WiFi.RSSI(): %d\n", WiFi.RSSI());
       break;
