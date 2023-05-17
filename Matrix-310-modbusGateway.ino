@@ -40,17 +40,17 @@ const int serverPort = 502;
 WiFiServer  server(serverPort); // 99, 81
 
 // Helper functions
-uint16_t calculateCRC(uint8_t *buffer, uint8_t len);
+// uint16_t calculateCRC(uint8_t *buffer, uint8_t len);
 // void parseModbusTCPRequest(uint8_t *tcpBuffer, uint8_t tcpLength, modbusTcpRequest &tcpRequest);
-bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead, 
-                          uint16_t &tcpResponseLength, uint16_t &rtuReadDataLength, 
-                          uint8_t *rtuReadBuffer);
-void createModbusTCPResponse(modbusTcpRequest &tcpRequest, modbusRtuRead &rtuRead, 
-                              modbusTcpResponse &tcpResponse, uint16_t tcpResponseLength);
-void printModbusRtuWrite(modbusRtuWrite &rtu, bool isTcp);
-void printModbusRtuRead(modbusRtuRead &rtu, bool isTcp);
-void printModbusTcpRequest(modbusTcpRequest &tcp);
-void printModbusTcpResponse(modbusTcpResponse &tcp);
+// bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead, 
+//                           uint16_t &tcpResponseLength, uint16_t &rtuReadDataLength, 
+//                           uint8_t *rtuReadBuffer);
+// void createModbusTCPResponse(modbusTcpRequest &tcpRequest, modbusRtuRead &rtuRead, 
+//                               modbusTcpResponse &tcpResponse, uint16_t tcpResponseLength);
+// void printModbusRtuWrite(modbusRtuWrite &rtu, bool isTcp);
+// void printModbusRtuRead(modbusRtuRead &rtu, bool isTcp);
+// void printModbusTcpRequest(modbusTcpRequest &tcp);
+// void printModbusTcpResponse(modbusTcpResponse &tcp);
 WiFiClient client;
 unsigned int wifiConnectCount = 0;
 
@@ -135,7 +135,7 @@ void loop()
         printModbusRtuRead(tcpResponse.rtuPart, false);
 
         // Create Modbus TCP response
-        createModbusTCPResponse(tcpRequest, tcpResponse.rtuPart, tcpResponse, tcpResponseLength);
+        createModbusTCPResponse(tcpRequest, tcpResponse, tcpResponseLength);
         printModbusTcpResponse(tcpResponse);
 
         // Send Modbus TCP response
@@ -153,7 +153,7 @@ void loop()
           free(tcpResponse.rtuPart.data); // free memory
           tcpResponse.rtuPart.data = NULL;
           Serial.println("freed rtuRead.data memory");
-      }
+        }
         Serial.printf("Heap Size: %d\n", ESP.getHeapSize());
         int usedHeap = ESP.getHeapSize() - ESP.getFreeHeap();
         Serial.printf("Used Heap Size: %d\n", usedHeap);
@@ -195,8 +195,8 @@ void loop()
 void wifiConnect()
 {
   // Replace with your network credentials
-  const char *ssid = "Matrix-310";
-  const char *password = "00000000";
+  const char *ssid = "ROOM2";
+  const char *password = "12481248";
   // wifi_ps_type_t current_ps_mode;
   // esp_wifi_get_ps(&current_ps_mode);
   // esp_sleep_enable_wifi_wakeup();
@@ -342,6 +342,7 @@ void wifiScan(){
 void initStructs(modbusTcpRequest &tcpRequest, modbusTcpResponse &tcpResponse) {
   memset(&tcpRequest, 0, sizeof(modbusTcpRequest));
   memset(&tcpResponse, 0, sizeof(modbusTcpResponse));
+  tcpResponse.rtuPart.data = NULL;
 }
 void initBuffer(uint8_t *buffer, uint8_t length) {
   memset(buffer, 0, length);
@@ -450,12 +451,12 @@ bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead,
   return true;
 }
 
-void createModbusTCPResponse(modbusTcpRequest &tcpRequest, modbusRtuRead &rtuRead, 
+void createModbusTCPResponse(modbusTcpRequest &tcpRequest, 
                             modbusTcpResponse &tcpResponse, uint16_t tcpResponseLength) {
   memcpy(&tcpResponse.transactionId, &tcpRequest.transactionId, 4);
   *(uint16_t *)&tcpResponse.length[0] = swap_uint16(tcpResponseLength);
-  memcpy(&tcpResponse.rtuPart.address, &rtuRead.address, 3);
-  tcpResponse.rtuPart.data = rtuRead.data;
+  // memcpy(&tcpResponse.rtuPart.address, &rtuRead.address, 3);
+  // tcpResponse.rtuPart.data = rtuRead.data;
 }
 
 void printBuffer(uint8_t *buffer, uint16_t length) {
