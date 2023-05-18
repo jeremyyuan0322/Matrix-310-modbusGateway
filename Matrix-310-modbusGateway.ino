@@ -41,7 +41,6 @@ WiFiServer  server(serverPort); // 99, 81
 
 // Helper functions
 // uint16_t calculateCRC(uint8_t *buffer, uint8_t len);
-// void parseModbusTCPRequest(uint8_t *tcpBuffer, uint8_t tcpLength, modbusTcpRequest &tcpRequest);
 // bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead, 
 //                           uint16_t &tcpResponseLength, uint16_t &rtuReadDataLength, 
 //                           uint8_t *rtuReadBuffer);
@@ -81,7 +80,7 @@ void loop()
   if(WiFi.status() != WL_CONNECTED){
     Serial.printf("WiFi.status(): %d\n", WiFi.status());
     Serial.printf("wifiConnectCount: %d\n", wifiConnectCount);
-    WiFi.disconnect(true);
+    WiFi.disconnect();
     delay(1000);
     // WiFi.mode(WIFI_OFF);
     Serial.println("WiFi disconnected");
@@ -98,23 +97,21 @@ void loop()
   {
     client.setNoDelay(true);
     Serial.println("New client connected");
-    modbusTcpRequest tcpRequest;
-    modbusTcpResponse tcpResponse;
-    // modbusRtuRead rtuRead;
-    
-    initStructs(tcpRequest, tcpResponse);
+    // modbusTcpRequest tcpRequest;
+    // modbusTcpResponse tcpResponse;
+    // initStructs(tcpRequest, tcpResponse);
     
     unsigned long clientTimeout = millis();
     while (client.connected())
     {
       if (client.available())
       {
+        modbusTcpRequest tcpRequest;
+        modbusTcpResponse tcpResponse;
+        initStructs(tcpRequest, tcpResponse);
         Serial.println("received tcp request");
         // Read Modbus TCP request
-        // uint8_t tcpBuffer[256];
         uint8_t bytesRead = client.read((byte *)&tcpRequest, 12);
-        // Parse Modbus TCP request
-        // parseModbusTCPRequest(tcpBuffer, bytesRead, tcpRequest);
         printModbusTcpRequest(tcpRequest);
 
         // Process Modbus RTU request
@@ -150,6 +147,8 @@ void loop()
           Serial.printf("Heap Size before free: %d\n", ESP.getHeapSize());
           int usedHeap = ESP.getHeapSize() - ESP.getFreeHeap();
           Serial.printf("Used Heap Size before free: %d\n", usedHeap);
+          // memcpy(tcpResponse.rtuPart.data, "H", 1);
+          // Serial.println(*(byte *)tcpResponse.rtuPart.data);
           free(tcpResponse.rtuPart.data); // free memory
           tcpResponse.rtuPart.data = NULL;
           Serial.println("freed rtuRead.data memory");
@@ -195,8 +194,8 @@ void loop()
 void wifiConnect()
 {
   // Replace with your network credentials
-  const char *ssid = "ROOM2";
-  const char *password = "12481248";
+  const char *ssid = "Artila";
+  const char *password = "CF25B34315";
   // wifi_ps_type_t current_ps_mode;
   // esp_wifi_get_ps(&current_ps_mode);
   // esp_sleep_enable_wifi_wakeup();
@@ -372,10 +371,6 @@ unsigned short calculateCRC(uint8_t *data, uint8_t length)
     return crc;
 }
 
-// void parseModbusTCPRequest(uint8_t *tcpBuffer, uint8_t tcpLength, modbusTcpRequest &tcpRequest) {
-//   memcpy(&tcpRequest, tcpBuffer, sizeof(modbusTcpRequest));
-// }
-
 bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead, 
                           uint16_t &tcpResponseLength, uint16_t &rtuReadDataLength 
                           ,uint8_t *rtuReadBuffer) {
@@ -385,6 +380,7 @@ bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead,
   rtuWrite.crc[1] = (crc >> 8) & 0xFF;
   rtuRead.data = (byte *)malloc(sizeof(byte) * rtuReadDataLength * 2); // 3*2=6
   // rtuRead.data = new byte[sizeof(byte) * rtuReadDataLength * 2];
+  initBuffer(rtuRead.data, rtuReadDataLength * 2);
   if (rtuRead.data == NULL)
   {
         Serial.println("malloc failed");
@@ -395,7 +391,7 @@ bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead,
   {
         Serial.println("malloc success");
   }
-  initBuffer(rtuRead.data, rtuReadDataLength * 2);
+  
   digitalWrite(COM1_RTS, HIGH); // Set RS485 to transmit mode
   delay(0.01);
   // Prepare RTU request for sending
@@ -455,8 +451,6 @@ void createModbusTCPResponse(modbusTcpRequest &tcpRequest,
                             modbusTcpResponse &tcpResponse, uint16_t tcpResponseLength) {
   memcpy(&tcpResponse.transactionId, &tcpRequest.transactionId, 4);
   *(uint16_t *)&tcpResponse.length[0] = swap_uint16(tcpResponseLength);
-  // memcpy(&tcpResponse.rtuPart.address, &rtuRead.address, 3);
-  // tcpResponse.rtuPart.data = rtuRead.data;
 }
 
 void printBuffer(uint8_t *buffer, uint16_t length) {
