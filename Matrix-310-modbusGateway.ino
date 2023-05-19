@@ -26,7 +26,9 @@ struct modbusTcpRequest {
   uint8_t length[2];
   modbusRtuWrite rtuPart; // no crc
 };//000100000006020300440003
-// 00 01 00 00 00 06   
+// 00 01 00 00 00 06
+// 00 01 00 00 00 06  02 03 00 44 00 03 sensor1
+// 00 01 00 00 00 06  01 03 00 00 00 02 sensor2
 
 struct modbusTcpResponse {
   uint8_t transactionId[2];
@@ -52,8 +54,10 @@ WiFiServer  server(serverPort); // 99, 81
 // void printModbusTcpResponse(modbusTcpResponse &tcp);
 WiFiClient client;
 unsigned int wifiConnectCount = 0;
-
+modbusTcpRequest tcpRequest;
+modbusTcpResponse tcpResponse;
 void setup() {
+  initStructs(tcpRequest, tcpResponse);
   // Initialize serial communication
   Serial.begin(115200);
   delay(100);
@@ -64,7 +68,21 @@ void setup() {
   delay(100);
 
   // Connect to Wi-Fi
-  wifiConnect();
+  const char *ssid = "Artila";
+  const char *password = "CF25B34315";
+  WiFi.begin(ssid, password);
+
+  // 等待連接網路
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  // 顯示連接成功訊息
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
 
   // Start the server
   server.begin();
@@ -77,38 +95,22 @@ void setup() {
 
 void loop()
 {
-  if(WiFi.status() != WL_CONNECTED){
-    Serial.printf("WiFi.status(): %d\n", WiFi.status());
-    Serial.printf("wifiConnectCount: %d\n", wifiConnectCount);
-    WiFi.disconnect();
-    delay(1000);
-    // WiFi.mode(WIFI_OFF);
-    Serial.println("WiFi disconnected");
-    Serial.println("try to reconnect to WiFi");
-    // WiFi.mode(WIFI_STA);
-    wifiConnect();
-    wifiConnectCount++;
-    
-  }
   // Check if a client has connected
   // server.available() return a new WiFiClient object, return empty object if no client connected
   client = server.available();
   if (client)
   {
-    client.setNoDelay(true);
+    // client.setNoDelay(true);
     Serial.println("New client connected");
-    // modbusTcpRequest tcpRequest;
-    // modbusTcpResponse tcpResponse;
-    // initStructs(tcpRequest, tcpResponse);
     
-    unsigned long clientTimeout = millis();
+    // unsigned long clientTimeout = millis();
     while (client.connected())
     {
       if (client.available())
       {
-        modbusTcpRequest tcpRequest;
-        modbusTcpResponse tcpResponse;
-        initStructs(tcpRequest, tcpResponse);
+        // modbusTcpRequest tcpRequest;
+        // modbusTcpResponse tcpResponse;
+        // initStructs(tcpRequest, tcpResponse);
         Serial.println("received tcp request");
         // Read Modbus TCP request
         uint8_t bytesRead = client.read((byte *)&tcpRequest, 12);
@@ -142,17 +144,16 @@ void loop()
         memcpy(tcpResponseBuffer, &tcpResponse.transactionId[0], 6);
         memcpy(tcpResponseBuffer + 6, &tcpResponse.rtuPart.address, 3);
         memcpy(tcpResponseBuffer + 9, tcpResponse.rtuPart.data, tcpResponseLength - 3);
-        delay(10);
-        if(tcpResponse.rtuPart.data != NULL){
-          Serial.printf("Heap Size before free: %d\n", ESP.getHeapSize());
-          int usedHeap = ESP.getHeapSize() - ESP.getFreeHeap();
-          Serial.printf("Used Heap Size before free: %d\n", usedHeap);
-          // memcpy(tcpResponse.rtuPart.data, "H", 1);
-          // Serial.println(*(byte *)tcpResponse.rtuPart.data);
-          free(tcpResponse.rtuPart.data); // free memory
-          tcpResponse.rtuPart.data = NULL;
-          Serial.println("freed rtuRead.data memory");
-        }
+        // if(tcpResponse.rtuPart.data != NULL){
+        //   Serial.printf("Heap Size before free: %d\n", ESP.getHeapSize());
+        //   int usedHeap = ESP.getHeapSize() - ESP.getFreeHeap();
+        //   Serial.printf("Used Heap Size before free: %d\n", usedHeap);
+        //   // memcpy(tcpResponse.rtuPart.data, "H", 1);
+        //   // Serial.println(*(byte *)tcpResponse.rtuPart.data);
+        //   free(tcpResponse.rtuPart.data); // free memory
+        //   tcpResponse.rtuPart.data = NULL;
+        //   Serial.println("freed rtuRead.data memory");
+        // }
         Serial.printf("Heap Size: %d\n", ESP.getHeapSize());
         int usedHeap = ESP.getHeapSize() - ESP.getFreeHeap();
         Serial.printf("Used Heap Size: %d\n", usedHeap);
@@ -165,177 +166,29 @@ void loop()
         Serial.println("sent tcp response");
         
         Serial.println();
-        client.flush();
-        delay(10);
-        clientTimeout = millis();
+        // client.flush();
+        // delay(10);
+        // clientTimeout = millis();
       }
-      if(millis() - clientTimeout > 5000){
-        client.stop();
-        Serial.println("client timeout");
-        Serial.println("client disconnected");
-        break;
-      }
-      else if(client.connected() != true){
-        client.stop();
-        Serial.println("client disconnected");
-        break;
-      }
-      else if(WiFi.status() != WL_CONNECTED){
-        client.stop();
-        Serial.println("WiFi disconnected");
-        Serial.println("client disconnected");
-        break;
-      }
-    }
-    
-  }
-}
-
-void wifiConnect()
-{
-  // Replace with your network credentials
-  const char *ssid = "Artila";
-  const char *password = "CF25B34315";
-  // wifi_ps_type_t current_ps_mode;
-  // esp_wifi_get_ps(&current_ps_mode);
-  // esp_sleep_enable_wifi_wakeup();
-  // if(current_ps_mode == WIFI_PS_NONE) {
-  //   Serial.println("WiFi is not in power save mode");
-  // } 
-  // else if(current_ps_mode == WIFI_PS_MIN_MODEM) {
-  //   Serial.println("WiFi is in minimum modem power save mode");
-  // } 
-  // else if(current_ps_mode == WIFI_PS_MAX_MODEM) {
-  //   Serial.println("WiFi is in maximum modem power save mode");
-  // }
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  // WiFi.setAutoReconnect(false);
-  delay(100);
-  WiFi.mode(WIFI_STA);
-  // WiFi.setSleep(false);
-  // WiFi.setSleep(WIFI_PS_NONE);
-  // wifiScan();
-  // esp_wifi_set_max_tx_power(20);
-  WiFi.begin(ssid, password);
-  unsigned long startTime = millis();
-  while (WiFi.status() != WL_CONNECTED) {
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-    Serial.print(".");
-    if (WiFi.status() == WL_CONNECTED) {
-      // wifi_config_t conf;
-      // esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &conf);
-      /*
-      - ESP_OK: succeed
-  *    - ESP_ERR_WIFI_NOT_INIT: WiFi is not initialized by esp_wifi_init
-  *    - ESP_ERR_INVALID_ARG: invalid argument
-  *    - ESP_ERR_WIFI_MODE: WiFi mode is wrong
-  *    - ESP_ERR_WIFI_CONN: WiFi internal error, the station/soft-AP control block is invalid*/
-      // if (err == ESP_OK)
-      // {
-      //   // 打印 SSID
-      //   Serial.printf("SSID: %s\n", conf.sta.ssid);
+      // if(millis() - clientTimeout > 5000){
+      //   client.stop();
+      //   Serial.println("client timeout");
+      //   Serial.println("client disconnected");
+      //   break;
       // }
-      // else
-      // {
-      //   // 處理錯誤
-      //   if(err == ESP_ERR_WIFI_NOT_INIT){
-      //     Serial.println("WiFi is not initialized by esp_wifi_init");
-      //   }
-      //   else if(err == ESP_ERR_INVALID_ARG){
-      //     Serial.println("invalid argument");
-      //   }
-      //   else if(err == ESP_ERR_WIFI_MODE){
-      //     Serial.println("WiFi mode is wrong");
-      //   }
-      //   else if(err == ESP_ERR_WIFI_CONN){
-      //     Serial.println("WiFi internal error, the station/soft-AP control block is invalid");
-      //   }
-      //   else{
-      //     Serial.printf("unknown error: %d\n", err);
-      //   }
+      // if(client.connected() != true){
+      //   client.stop();
+      //   Serial.println("client disconnected");
+      //   break;
       // }
-
-      //RSSI
-      Serial.printf("WiFi.RSSI(): %d\n", WiFi.RSSI());
-      Serial.println("");
-      Serial.println("WiFi connected.");
-      Serial.println("IP address: ");
-      Serial.println(WiFi.localIP());
-      break;
-    }
-    if (millis() - startTime > 5000) {
-      // WiFi connection timeout
-      Serial.println("\nwifi connect timeout");
-      break;
+      // if(WiFi.status() != WL_CONNECTED){
+      //   client.stop();
+      //   Serial.println("WiFi disconnected");
+      //   Serial.println("client disconnected");
+      //   break;
+      // }
     }
   }
-}
-
-void wifiScan(){
-  Serial.println("Scan start");
-    // WiFi.scanNetworks will return the number of networks found.
-    int n = WiFi.scanNetworks();
-    Serial.println("Scan done");
-    if (n == 0) {
-        Serial.println("no networks found");
-    } else {
-        Serial.print(n);
-        Serial.println(" networks found");
-        Serial.println("Nr | SSID                             | RSSI | CH | Encryption");
-        for (int i = 0; i < n; ++i) {
-            // Print SSID and RSSI for each network found
-            Serial.printf("%2d",i + 1);
-            Serial.print(" | ");
-            Serial.printf("%-32.32s", WiFi.SSID(i).c_str());
-            Serial.print(" | ");
-            Serial.printf("%4d", WiFi.RSSI(i));
-            Serial.print(" | ");
-            Serial.printf("%2d", WiFi.channel(i));
-            Serial.print(" | ");
-            switch (WiFi.encryptionType(i))
-            {
-            case WIFI_AUTH_OPEN:
-                Serial.print("open");
-                break;
-            case WIFI_AUTH_WEP:
-                Serial.print("WEP");
-                break;
-            case WIFI_AUTH_WPA_PSK:
-                Serial.print("WPA");
-                break;
-            case WIFI_AUTH_WPA2_PSK:
-                Serial.print("WPA2");
-                break;
-            case WIFI_AUTH_WPA_WPA2_PSK:
-                Serial.print("WPA+WPA2");
-                break;
-            case WIFI_AUTH_WPA2_ENTERPRISE:
-                Serial.print("WPA2-EAP");
-                break;
-            case WIFI_AUTH_WPA3_PSK:
-                Serial.print("WPA3");
-                break;
-            case WIFI_AUTH_WPA2_WPA3_PSK:
-                Serial.print("WPA2+WPA3");
-                break;
-            case WIFI_AUTH_WAPI_PSK:
-                Serial.print("WAPI");
-                break;
-            default:
-                Serial.print("unknown");
-            }
-            Serial.println();
-            delay(10);
-        }
-    }
-    Serial.println("");
-    // Delete the scan result to free memory for code below.
-    WiFi.scanDelete();
-    // Wait a bit before next step.
-    delay(1000);
 }
 
 void initStructs(modbusTcpRequest &tcpRequest, modbusTcpResponse &tcpResponse) {
@@ -378,9 +231,10 @@ bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead,
   uint16_t crc = calculateCRC((uint8_t *)&rtuWrite, 6);
   rtuWrite.crc[0] = crc & 0xFF;
   rtuWrite.crc[1] = (crc >> 8) & 0xFF;
-  rtuRead.data = (byte *)malloc(sizeof(byte) * rtuReadDataLength * 2); // 3*2=6
+  rtuRead.data = (byte *)calloc(rtuReadDataLength * 2, sizeof(byte));
+  // rtuRead.data = (byte *)malloc(sizeof(byte) * rtuReadDataLength * 2); // 3*2=6
   // rtuRead.data = new byte[sizeof(byte) * rtuReadDataLength * 2];
-  initBuffer(rtuRead.data, rtuReadDataLength * 2);
+  // initBuffer(rtuRead.data, rtuReadDataLength * 2);
   if (rtuRead.data == NULL)
   {
         Serial.println("malloc failed");
