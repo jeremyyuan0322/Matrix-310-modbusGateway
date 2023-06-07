@@ -282,7 +282,7 @@ bool processModbusrtuWrite(modbusRtuWrite &rtuWrite, modbusRtuRead &rtuRead,
             }
             break;
         }
-        if (millis() - RS485Timeout > 1000)
+        if (millis() - RS485Timeout > 3000)
         {
             Serial.println("read nothing!");
             client.stop();
