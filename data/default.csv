@@ -1,0 +1,2 @@
+﻿userName,userPwd,deviceName,netInterface,wifiSetFin,ssid,staPwd,wifiMode,wifiIp,wifiNetmask,wifiGateway,ethSetFin,ethMode,ethIp,ethNetmask,ethGateway,serialSetFin,baud,parityBit,dataBit,stopBit,rtuTimeout,bridgeSetFin,port,uidMin,uidMax,tcpTimeout
+admin,00000000,Matrix-310,0,0,,,0,192.168.4.1,255.255.255.0,192.168.4.1,0,1,192.168.2.127,255.255.255.0,192.168.2.1,0,9600,0,8,1,1000,0,502,1,16,0

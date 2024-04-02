@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>login page</title>
+  <link rel="stylesheet" type="text/css" href="/css/w3.css" />
+  <!-- <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/w3-css/4.1.0/w3.css" /> -->
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    form {
+      border: 3px solid #f1f1f1;
+    }
+
+    input[type=text],
+    input[type=password] {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      display: inline-block;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+ 
+    button {
+      background-color: #04AA6D;
+      color: white;
+      padding: 14px 20px;
+      margin: 8px 0;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    img.logo {
+      height: 50px;
+      padding: 4px 8px;
+    }
+
+    .forget {
+      float: right;
+      padding-top: 16px;
+      padding: 16px;
+    }
+    /* style="position:absolute;right:10px;top:10px;cursor:pointer;"  */
+    img.eye {
+      height: 15px;
+      width: 15px;
+      position: absolute;
+      right: 10px;
+      bottom: 23px;
+      cursor: pointer;
+    }
+    
+
+    /* Change styles for span and cancel button on extra small screens */
+    @media screen and (max-width: 576px) {
+      .forget {
+        display: block;
+        float: none;
+      }
+    }
+    @media screen and (min-width: 576px) {
+      .container {
+        position: relative;
+        padding-top: 100px;
+        padding-bottom: 30px;
+        width: 576px;
+        top: 50%;  
+        left: 50%;
+        transform: translate(-50%, -0%);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="w3-bar w3-black">
+    <img class="logo" src="/img/artila_logo.png" alt="Artila">
+  </div>
+
+  <form id="loginForm" method="get">
+    <div class="container">
+      <label for="uName"><b>Username</b></label>
+      <input type="text" placeholder="Enter Username" name="uName" required>
+      <div style="position: relative;">
+        <label for="uPwd"><b>Password</b></label>
+        <input type="password" placeholder="Enter Password" name="uPwd" id="uPwd" required>
+        <img src="/img/eye.svg" alt="show/hide" class="eye" onclick="togglePwdVisible('uPwd')"/>
+      </div>
+      <button type="submit">Login</button>
+      <br><br>
+    </div>
+  </form>
+  <script>
+    function togglePwdVisible(inputId) {
+      let passwordInput = document.getElementById(inputId);
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+      } else {
+        passwordInput.type = "password";
+      }
+    }
+
+    // loginForm submission handler
+    document.getElementById('loginForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      let form = event.target;
+      let formData = new FormData(form);
+      let data = Object.fromEntries(formData.entries());
+
+      // Base64 encode the username and password
+      let credentials = btoa(data.uName + ":" + data.uPwd);
+
+      // Create a new request with the appropriate headers for basic auth
+      let request = new Request('/login', {
+          method: 'GET',
+          headers: new Headers({
+              'Authorization': 'Basic ' + credentials
+          })
+      });
+
+      // Send the request
+      let response = await fetch(request);
+
+      // check the response status and if it's 200, redirect to setting.html
+      if(response.status === 200) {
+        sessionStorage.setItem('isLogin', 'true');
+        window.location.href = '/setting.html';
+        alert('Login success');
+      } else {
+        window.location.href = '/index.html';
+        alert('Login Failed');
+      }
+  });
+
+    
+    // document.querySelector("#loginForm").addEventListener("submit", function (event) {
+    //   event.preventDefault();
+    //   let uName = document.querySelector('input[name="uName"]').value;
+    //   let uPwd = document.querySelector('input[name="uPwd"]').value;
+    //   sendFormData("/login", {
+    //     uName: uName,
+    //     uPwd: uPwd
+    //   });
+    // });
+
+
+    // function sendFormData(url, data) {
+    //   var xhr = new XMLHttpRequest();
+    //   xhr.onreadystatechange = function () {
+    //     if (this.readyState == 4 && this.status == 200) {
+    //       var response = xhr.responseText;
+    //       alert(response);
+    //       window.location.href = "/setting";
+    //     }
+    //   };
+    //   xhr.open("GET", url, true);
+    //   xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    //   var formEncodedData = Object.keys(data).map(function (key) {
+    //     return key + '=' + encodeURIComponent(data[key]);
+    //   }).join('&');
+    //   xhr.send(formEncodedData);
+    // }
+
+
+  </script>
+</body>
+
+</html>
