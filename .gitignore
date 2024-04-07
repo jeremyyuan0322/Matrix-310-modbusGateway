@@ -5,7 +5,7 @@
 *~
 
 # Ignore build folder
-**/build
+# **/build
 
 # cache dir
 .cache/
