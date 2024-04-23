@@ -10,9 +10,10 @@ This project is a Modbus RTU to TCP gateway. It allows communication between Mod
 
 ## Table of Contents
 
-- [Features](#Features)
+- [Features](#features)
+- [Arduino Libraries](#arduino-libraries)
 - [Installation](#installation)
-- [Setting](#Setting)
+- [Setting](#setting)
 - [Usage](#usage)
 
 ## Features
@@ -25,6 +26,13 @@ This project is a Modbus RTU to TCP gateway. It allows communication between Mod
 - COM1: Isolated RS-485 (1500Vrms isolation)
 - Ready LED
 - Rotary switch
+
+## Arduino Libraries
+    arduino-esp32: v2.0.9 
+    emodbus v1.7-stable https://github.com/eModbus/eModbus  
+    ethernet 2.0.0 https://github.com/maxgerhardt/Ethernet  
+    AsyncTCP 1.1.4 https://github.com/dvarrel/AsyncTCP  
+    ESPAsyncWebServer only one version https://github.com/me-no-dev/ESPAsyncWebServer
 
 
 ## Installation
